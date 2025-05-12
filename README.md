@@ -4,7 +4,7 @@ Small wrapper to expose the UV unwrapping related functions from [Geogram](https
 
 ## Installation
 
-Either via [Pypi](https://pypi.org/project/geotex) or install via github `pip install -e https://github.com/vork/geotex`.
+Either via [Pypi](https://pypi.org/project/geotex) or install via github `pip install git+https://github.com/vork/geotex.git`.
 
 ## Usage
 
