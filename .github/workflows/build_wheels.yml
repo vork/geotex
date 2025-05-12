@@ -40,9 +40,8 @@ jobs:
     - uses: pypa/cibuildwheel@v2.22
       env:
         CIBW_TEST_REQUIRES: pytest numpy
-        CIBW_TEST_COMMAND: "pytest {package}/../tests"
-        CIBW_BEFORE_BUILD_LINUX: /usr/bin/sudo apt-get update && /usr/bin/sudo apt-get install -y cmake
-        CIBW_BEFORE_BUILD_MACOS: brew install cmake
+        CIBW_TEST_COMMAND: "pytest {project}/tests"
+        CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux*"
 
     - name: Verify clean directory
       run: git diff --exit-code
