@@ -12,6 +12,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(pybind11)
 
+# ---- OpenMP ----
+if(NOT APPLE AND NOT WIN32)
+    find_package(OpenMP REQUIRED)
+endif()
+
 # ---- Geogram ----
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -19,7 +24,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 elseif(APPLE)
   set(VORPALINE_PLATFORM "Darwin-clang")
 elseif(WIN32)
-  set(VORPALINE_PLATFORM "Win64-vs2015")
+  set(VORPALINE_PLATFORM "Win-vs-generic")
 endif()
 
 set(VORPALINE_BUILD_DYNAMIC OFF CACHE BOOL "" FORCE)
@@ -52,7 +57,12 @@ target_link_libraries(geotex PRIVATE
 )
 
 if(UNIX AND NOT APPLE)  # Linux
-  target_link_libraries(geotex PRIVATE pthread rt dl)
+    target_link_libraries(geotex PRIVATE 
+        geogram 
+        pybind11::module 
+        OpenMP::OpenMP_CXX  # Critical for OpenMP symbols
+        pthread rt dl ${CMAKE_THREAD_LIBS_INIT}
+    )
   target_compile_options(geotex PRIVATE -fPIC -pthread)
 elseif(APPLE)  # macOS
   find_library(CORESERVICES CoreServices)
