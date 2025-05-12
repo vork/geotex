@@ -1,6 +1,6 @@
 [project]
 name = "geotex"
-version = "0.1.0"
+version = "0.1.1"
 description = "Geogram texturing (atlas) bindings"
 authors = [
     {name = "Mark Boss", email = "hello@markboss.me"}

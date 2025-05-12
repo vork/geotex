@@ -46,36 +46,43 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(geogram)
 
+# Create the Python module using pybind11
+pybind11_add_module(geotex MODULE src/bindings.cpp)
 
-add_library(geotex MODULE src/bindings.cpp)
-set_target_properties(geotex PROPERTIES PREFIX "" CXX_VISIBILITY_PRESET "hidden")
-
-# Platform-specific linking
-target_link_libraries(geotex PRIVATE 
-  geogram 
-  pybind11::module
+# Set module properties
+set_target_properties(geotex PROPERTIES
+    CXX_VISIBILITY_PRESET "hidden"
 )
 
+# Platform-specific configuration
 if(UNIX AND NOT APPLE)  # Linux
     target_link_libraries(geotex PRIVATE 
         geogram 
-        pybind11::module 
-        OpenMP::OpenMP_CXX  # Critical for OpenMP symbols
+        OpenMP::OpenMP_CXX
         pthread rt dl ${CMAKE_THREAD_LIBS_INIT}
     )
-  target_compile_options(geotex PRIVATE -fPIC -pthread)
+    target_compile_options(geotex PRIVATE -fPIC -pthread)
 elseif(APPLE)  # macOS
-  find_library(CORESERVICES CoreServices)
-  target_link_libraries(geotex PRIVATE ${CORESERVICES} c++abi)
-  target_compile_options(geotex PRIVATE -fPIC)
+    find_library(CORESERVICES CoreServices)
+    target_link_libraries(geotex PRIVATE 
+        geogram
+        ${CORESERVICES} 
+        c++abi
+    )
+    target_compile_options(geotex PRIVATE -fPIC)
 elseif(WIN32)  # Windows
-  target_compile_definitions(geogram INTERFACE GEO_STATIC_LIBS)
-  target_link_libraries(geotex PRIVATE ws2_32)
+    target_compile_definitions(geogram INTERFACE GEO_STATIC_LIBS)
+    target_link_libraries(geotex PRIVATE 
+        geogram
+    )
+    target_compile_options(geotex PRIVATE 
+        $<$<CONFIG:Release>:/MD>
+        $<$<CONFIG:Debug>:/MDd>
+    )
 endif()
 
-# drop only the module into the wheel root
-install(TARGETS geotex
-        LIBRARY DESTINATION .
-        RUNTIME DESTINATION .
-        ARCHIVE DESTINATION lib
+# Install the module
+install(TARGETS geotex 
+    LIBRARY DESTINATION "."
+    RUNTIME DESTINATION "."
 )
