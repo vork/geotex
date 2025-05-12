@@ -1,4 +1,4 @@
-name: Wheels
+name: Build and Publish Wheels
 
 on:
   workflow_dispatch:
@@ -40,15 +40,9 @@ jobs:
     - uses: pypa/cibuildwheel@v2.22
       env:
         CIBW_TEST_REQUIRES: pytest numpy
-        CIBW_TEST_COMMAND: "pytest {project}/tests"
-        CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux*"
-        CIBW_BEFORE_BUILD: |
-          if [[ "$CIBW_PLATFORM" == "macos" ]]; then
-            brew install cmake
-          elif [[ "$CIBW_PLATFORM" == "linux" ]]; then
-            sudo apt-get update
-            sudo apt-get install -y cmake
-          fi
+        CIBW_TEST_COMMAND: "pytest {package}/../tests"
+        CIBW_BEFORE_BUILD_LINUX: sudo apt-get update && sudo apt-get install -y cmake
+        CIBW_BEFORE_BUILD_MACOS: brew install cmake
 
     - name: Verify clean directory
       run: git diff --exit-code
