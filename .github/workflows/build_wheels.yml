@@ -41,7 +41,7 @@ jobs:
       env:
         CIBW_TEST_REQUIRES: pytest numpy
         CIBW_TEST_COMMAND: "pytest {package}/../tests"
-        CIBW_BEFORE_BUILD_LINUX: sudo apt-get update && sudo apt-get install -y cmake
+        CIBW_BEFORE_BUILD_LINUX: /usr/bin/sudo apt-get update && /usr/bin/sudo apt-get install -y cmake
         CIBW_BEFORE_BUILD_MACOS: brew install cmake
 
     - name: Verify clean directory
