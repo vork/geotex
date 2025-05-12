@@ -46,8 +46,8 @@ jobs:
           if [ "$(uname)" == "Darwin" ]; then
             brew install cmake
           elif [ "$(uname)" == "Linux" ]; then
-            sudo apt-get update
-            sudo apt-get install -y cmake
+            apt-get update
+            apt-get install -y cmake
           fi
 
     - name: Verify clean directory
