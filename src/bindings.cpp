@@ -70,7 +70,7 @@ static py::array_t<double> make_uv_numpy(Mesh &M) {
 }
 
 /* ---------- Python API -------------------------------------------------- */
-PYBIND11_MODULE(geotex, m) {
+PYBIND11_MODULE(_geotex, m) {
     m.doc() = "Minimal bindings to Geogram texturing.";
 
     m.def("make_atlas",

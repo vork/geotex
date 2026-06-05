@@ -22,7 +22,15 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(VORPALINE_PLATFORM "Linux64-gcc")
 elseif(APPLE)
-  set(VORPALINE_PLATFORM "Darwin-clang")
+  if(
+    CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$"
+    OR CMAKE_OSX_ARCHITECTURES MATCHES "arm64"
+  )
+    # Geogram has a dedicated Apple Silicon platform file without x86 SSE flags.
+    set(VORPALINE_PLATFORM "Darwin-aarch64-clang")
+  else()
+    set(VORPALINE_PLATFORM "Darwin-clang")
+  endif()
 elseif(WIN32)
   set(VORPALINE_PLATFORM "Win-vs-generic")
 endif()
@@ -46,7 +54,7 @@ set(GEOGRAM_LIB_ONLY ON CACHE BOOL "" FORCE)
 set(GEOGRAM_WITH_LEGACY_NUMERICS ON CACHE BOOL "" FORCE)
 
 # Bake $ORIGIN into rpaths so the shared libs resolve next to the installed
-# Python module (they are co-located in site-packages).
+# Python extension module inside the geotex package directory.
 set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 
 FetchContent_Declare(
@@ -57,14 +65,19 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(geogram)
 
-# Drop the version suffix and pin $ORIGIN rpath on the Geogram shared libs so
+# Drop the version suffix and pin local rpath on the Geogram shared libs so
 # (a) the SuperLU fallback name "libgeogram_num_3rdparty.so" matches exactly
 # (no .so.1.9.3 soname), and (b) libgeogram.so finds libgeogram_num_3rdparty.so
 # as a sibling at runtime.
+set(_geotex_local_rpath "$ORIGIN")
+if(APPLE)
+    set(_geotex_local_rpath "@loader_path")
+endif()
+
 foreach(_geolib geogram geogram_num_3rdparty)
     if(TARGET ${_geolib})
         set_target_properties(${_geolib} PROPERTIES
-            BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN"
+            BUILD_RPATH "${_geotex_local_rpath}" INSTALL_RPATH "${_geotex_local_rpath}"
         )
         # Fully unset (not empty) the version so the file and soname are a plain
         # "libX.so" with no trailing dot/version. OpenNL matches the already
@@ -75,55 +88,53 @@ foreach(_geolib geogram geogram_num_3rdparty)
     endif()
 endforeach()
 
-# Create the Python module using pybind11
-pybind11_add_module(geotex MODULE src/bindings.cpp)
+# Create the Python extension module using pybind11
+pybind11_add_module(_geotex MODULE src/bindings.cpp)
 
 # Set module properties
-set_target_properties(geotex PROPERTIES
+set_target_properties(_geotex PROPERTIES
     CXX_VISIBILITY_PRESET "hidden"
-    BUILD_RPATH "$ORIGIN"
-    INSTALL_RPATH "$ORIGIN"
+    BUILD_RPATH "${_geotex_local_rpath}"
+    INSTALL_RPATH "${_geotex_local_rpath}"
 )
 
 # Platform-specific configuration
 if(UNIX AND NOT APPLE)  # Linux
-    target_link_libraries(geotex PRIVATE 
+    target_link_libraries(_geotex PRIVATE 
         geogram 
         OpenMP::OpenMP_CXX
         pthread rt dl ${CMAKE_THREAD_LIBS_INIT}
     )
-    target_compile_options(geotex PRIVATE -fPIC -pthread)
+    target_compile_options(_geotex PRIVATE -fPIC -pthread)
 elseif(APPLE)  # macOS
     find_library(CORESERVICES CoreServices)
-    target_link_libraries(geotex PRIVATE 
+    target_link_libraries(_geotex PRIVATE 
         geogram
         ${CORESERVICES} 
         c++abi
     )
-    target_compile_options(geotex PRIVATE -fPIC)
+    target_compile_options(_geotex PRIVATE -fPIC)
 elseif(WIN32)  # Windows
     target_compile_definitions(geogram INTERFACE GEO_STATIC_LIBS)
-    target_link_libraries(geotex PRIVATE 
+    target_link_libraries(_geotex PRIVATE 
         geogram
     )
-    target_compile_options(geotex PRIVATE 
+    target_compile_options(_geotex PRIVATE 
         $<$<CONFIG:Release>:/MD>
         $<$<CONFIG:Debug>:/MDd>
     )
 endif()
 
-# Install the module
-install(TARGETS geotex 
-    LIBRARY DESTINATION "."
-    RUNTIME DESTINATION "."
+# Install the extension module into the Python package
+install(TARGETS _geotex
+    LIBRARY DESTINATION "geotex"
+    RUNTIME DESTINATION "geotex"
 )
 
-# Ship the Geogram shared libs alongside the module so the $ORIGIN rpath and
-# OpenNL's SuperLU fallback can find them in site-packages.
-if(UNIX AND NOT APPLE)
-    install(FILES
-        $<TARGET_FILE:geogram>
-        $<TARGET_FILE:geogram_num_3rdparty>
-        DESTINATION "."
-    )
-endif()
+# Ship Geogram runtime libraries alongside the extension module so local rpath
+# and OpenNL's SuperLU fallback can find them in the same package directory.
+install(FILES
+    $<TARGET_FILE:geogram>
+    $<TARGET_FILE:geogram_num_3rdparty>
+    DESTINATION "geotex"
+)
