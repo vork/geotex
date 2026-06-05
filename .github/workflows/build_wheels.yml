@@ -42,6 +42,7 @@ jobs:
         CIBW_TEST_REQUIRES: pytest numpy
         CIBW_TEST_COMMAND: "pytest {project}/tests"
         CIBW_SKIP: "pp* *-win32 *-manylinux_i686 *-musllinux*"
+        CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair -w {dest_dir} {wheel} --exclude libgeogram.so --exclude libgeogram_num_3rdparty.so"
 
     - name: Verify clean directory
       run: git diff --exit-code
