@@ -29,6 +29,11 @@ static void numpy_to_mesh(py::array_t<double, py::array::c_style> V,
     for (size_t i=0; i<f.shape(0); ++i) {
         for (int k=0; k<3; ++k) M.facets.set_vertex(i,k,f(i,k));
     }
+    // Establish facet adjacency. Without this the atlas maker sees every
+    // triangle as disconnected and charts each one separately. connect()
+    // preserves facet order/count (callers that need per-face UV alignment
+    // rely on this), and assumes vertices are already merged by position.
+    M.facets.connect();
 }
 
 static py::array_t<double> make_uv_numpy(Mesh &M) {
