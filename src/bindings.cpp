@@ -1,4 +1,6 @@
 #include <geogram/basic/common.h>
+#include <geogram/basic/command_line.h>
+#include <geogram/basic/command_line_args.h>
 #include <geogram/mesh/mesh.h>
 #include <geogram/mesh/mesh_io.h>
 #if __has_include(<geogram/parameterization/mesh_atlas_maker.h>)
@@ -9,6 +11,21 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+/* Initialize Geogram exactly once. Besides GEO::initialize(), the atlas /
+ * parameterization code reads Geogram configuration variables (NL solver and
+ * algorithm options) that are only *declared* by the standard command-line
+ * argument groups. Without importing them, the first such read trips
+ * `geo_assert(variable_exists)` in Environment::get_value(). Importing the
+ * groups once makes those defaults available. */
+static void ensure_geogram_initialized() {
+    static bool done = false;
+    if (done) return;
+    GEO::initialize();
+    GEO::CmdLine::import_arg_group("standard");
+    GEO::CmdLine::import_arg_group("algo");
+    done = true;
+}
+
 namespace py = pybind11;
 using GEO::Mesh;
 
@@ -16,7 +33,7 @@ using GEO::Mesh;
 static void numpy_to_mesh(py::array_t<double, py::array::c_style> V,
                          py::array_t<uint32_t, py::array::c_style> F,
                          Mesh& M) {
-    GEO::initialize();
+    ensure_geogram_initialized();
     auto v   = V.unchecked<2>();   // (n,3)
     auto f   = F.unchecked<2>();   // (m,3)
 
