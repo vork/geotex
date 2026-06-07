@@ -85,6 +85,16 @@ foreach(_geolib geogram geogram_num_3rdparty)
         # fallback name "libgeogram_num_3rdparty.so".
         set_property(TARGET ${_geolib} PROPERTY VERSION)
         set_property(TARGET ${_geolib} PROPERTY SOVERSION)
+        if(APPLE)
+            # Without this, CMake stamps the dylib install name as its absolute
+            # install-staging path (…/wheel/platlib/lib/libgeogram.dylib), which
+            # gets baked into _geotex as an unresolvable dependency. Use @rpath so
+            # it resolves next to _geotex via the @loader_path rpath at runtime.
+            set_target_properties(${_geolib} PROPERTIES
+                MACOSX_RPATH TRUE
+                INSTALL_NAME_DIR "@rpath"
+            )
+        endif()
     endif()
 endforeach()
 
@@ -138,13 +148,3 @@ install(FILES
     $<TARGET_FILE:geogram_num_3rdparty>
     DESTINATION "geotex"
 )
-
-# During macOS wheel repair, delocate can resolve dependencies via platlib/lib.
-# Mirror bundled Geogram dylibs there so delocate can locate them reliably.
-if(APPLE)
-    install(FILES
-        $<TARGET_FILE:geogram>
-        $<TARGET_FILE:geogram_num_3rdparty>
-        DESTINATION "lib"
-    )
-endif()
