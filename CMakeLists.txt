@@ -138,3 +138,13 @@ install(FILES
     $<TARGET_FILE:geogram_num_3rdparty>
     DESTINATION "geotex"
 )
+
+# During macOS wheel repair, delocate can resolve dependencies via platlib/lib.
+# Mirror bundled Geogram dylibs there so delocate can locate them reliably.
+if(APPLE)
+    install(FILES
+        $<TARGET_FILE:geogram>
+        $<TARGET_FILE:geogram_num_3rdparty>
+        DESTINATION "lib"
+    )
+endif()
